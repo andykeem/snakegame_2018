@@ -49,6 +49,7 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     public GameView(Context context) {
         super(context);
         mContext = context;
+        this.setOnTouchListener(this);
         this.init();
     }
 
@@ -68,10 +69,11 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
             case MotionEvent.ACTION_MOVE:
                 float x = event.getX();
                 float y = event.getY();
-                mTouchingPoint = new PointF(x, y);
+//                mTouchingPoint = new PointF(x, y);
+                mSnakePoint.set(x, y);
                 break;
         }
-        return false;
+        return true;
     }
 
     protected void init() {
@@ -98,20 +100,25 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         float appleY = (float) ((mDeviceHeight - UNIT_SIZE) * mRandomNum);
         mApplePoint = new PointF(appleX, appleY);
 
-
-
-    }
-
-    protected void updateView() {
         mAppleLeft = mApplePoint.x;
         mAppleTop = mApplePoint.y;
         mAppleRight = (mAppleLeft + UNIT_SIZE);
         mAppleBottom = (mAppleTop + UNIT_SIZE);
 
+    }
+
+    protected void updateView() {
         mSnakeLeft = mSnakePoint.x;
         mSnakeTop = mSnakePoint.y;
         mSnakeRight = (mSnakeLeft + UNIT_SIZE);
         mSnakeBottom = (mSnakeTop + UNIT_SIZE);
+
+
+
+
+
+
+
     }
 
     protected void drawView() {
