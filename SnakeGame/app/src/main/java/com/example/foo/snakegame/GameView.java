@@ -44,7 +44,11 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     protected float mAppleBottom;
     protected PointF mSnakePoint;
     protected PointF mApplePoint;
-    protected PointF mTouchingPoint;
+    protected PointF mTouchDownPoint;
+    protected boolean mMoveBottom;
+    protected boolean mMoveLeft;
+    protected boolean mMoveRight;
+    protected boolean mMoveTop;
 
     public GameView(Context context) {
         super(context);
@@ -65,12 +69,36 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         int action = event.getAction();
+        float x = event.getX();
+        float y = event.getY();
         switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                mMoveBottom = false;
+                mMoveLeft = false;
+                mMoveRight = false;
+                mMoveTop = false;
+                mTouchDownPoint = new PointF(x, y);
+                break;
             case MotionEvent.ACTION_MOVE:
-                float x = event.getX();
-                float y = event.getY();
-//                mTouchingPoint = new PointF(x, y);
+                float dx = (x - mTouchDownPoint.x);
+                float dy = (y - mTouchDownPoint.y);
+                if (dx > 0) {
+                    mMoveRight = true;
+                } else if (dx < 0) {
+                    mMoveLeft = true;
+                }
+                if (dy > 0) {
+                    mMoveBottom = true;
+                } else if (dy < 0) {
+                    mMoveTop = true;
+                }
                 mSnakePoint.set(x, y);
+                break;
+            case MotionEvent.ACTION_UP:
+//                mMoveBottom = false;
+//                mMoveLeft = false;
+//                mMoveRight = false;
+//                mMoveTop = false;
                 break;
         }
         return true;
@@ -108,12 +136,19 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     }
 
     protected void updateView() {
-        mSnakeLeft = mSnakePoint.x;
-        mSnakeTop = mSnakePoint.y;
+        if (mMoveBottom) {
+            mSnakeTop += 5;
+        } else if (mMoveLeft) {
+            mSnakeLeft -= 5;
+        } else if (mMoveRight) {
+            mSnakeLeft += 5;
+        } else if (mMoveTop) {
+            mSnakeTop -= 5;
+        }
+//        mSnakeLeft = mSnakePoint.x;
+//        mSnakeTop = mSnakePoint.y;
         mSnakeRight = (mSnakeLeft + UNIT_SIZE);
         mSnakeBottom = (mSnakeTop + UNIT_SIZE);
-
-
 
 
 
@@ -125,16 +160,13 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         if (mHolder == null) {
             return;
         }
-
         if (!mHolder.getSurface().isValid()) {
             return;
         }
-
         Canvas canvas = mHolder.lockCanvas();
         if (canvas == null) {
             return;
         }
-
         canvas.drawColor(Color.BLACK);
 
         // draw apple
@@ -148,7 +180,11 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     }
 
     protected void controlFPS() {
-
+        try {
+            Thread.sleep(20);
+        } catch (InterruptedException ie) {
+            Log.e(TAG, ie.getMessage(), ie);
+        }
     }
 
     public void onStart() {
