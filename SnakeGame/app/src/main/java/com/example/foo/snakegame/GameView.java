@@ -6,13 +6,18 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
-import android.hardware.display.DisplayManager;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+
+import com.example.foo.snakegame.helper.L;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Created by foo on 3/13/18.
@@ -21,14 +26,14 @@ import android.view.WindowManager;
 public class GameView extends SurfaceView implements Runnable, View.OnTouchListener {
 
     protected static final String TAG = GameView.class.getSimpleName();
-    protected static final int UNIT_SIZE = 48;
+    protected static final int UNIT_SIZE = 50;
     protected static final int SNAKE_INCREASE_UNIT = 3;
 
     protected Context mContext;
     protected SurfaceHolder mHolder;
     protected Thread mTask;
     protected boolean mRunning;
-    protected double mRandomNum;
+    protected Random mRand;
     protected Paint mApplePaint;
     protected Paint mSnakePaint;
     protected Point mOutSize = new Point();
@@ -44,11 +49,13 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     protected float mAppleBottom;
     protected PointF mSnakePoint;
     protected PointF mApplePoint;
-    protected PointF mTouchDownPoint;
+    protected PointF mTouchPoint = new PointF();
     protected boolean mMoveBottom;
     protected boolean mMoveLeft;
     protected boolean mMoveRight;
     protected boolean mMoveTop;
+    protected enum Move { BOTTOM, LEFT, TOP, RIGHT }
+    protected Move mNextMove;
 
     public GameView(Context context) {
         super(context);
@@ -71,34 +78,48 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         int action = event.getAction();
         float x = event.getX();
         float y = event.getY();
+        L.d("before x: " + x + ", y: " + y);
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                mMoveBottom = false;
-                mMoveLeft = false;
-                mMoveRight = false;
-                mMoveTop = false;
-                mTouchDownPoint = new PointF(x, y);
+                mTouchPoint.set(x, y);
                 break;
             case MotionEvent.ACTION_MOVE:
-                float dx = (x - mTouchDownPoint.x);
-                float dy = (y - mTouchDownPoint.y);
-                if (dx > 0) {
-                    mMoveRight = true;
-                } else if (dx < 0) {
-                    mMoveLeft = true;
-                }
-                if (dy > 0) {
-                    mMoveBottom = true;
-                } else if (dy < 0) {
-                    mMoveTop = true;
-                }
+                float dx = (x - mTouchPoint.x);
+                float dy = (y - mTouchPoint.y);
+                float absDx = Math.abs(dx);
+                float absDy = Math.abs(dy);
+//                if ((absDx > 300) || (absDy > 300)) {
+                    if (absDx > absDy ) {
+                        int mod = (((int) x) % UNIT_SIZE);
+                        if (mod == 0) {
+                            if (!(mMoveLeft || mMoveRight)) {
+                                if (dx > 0) {
+                                    this.resetMove();
+                                    mMoveRight = true;
+                                } else if (dx < 0) {
+                                    this.resetMove();
+                                    mMoveLeft = true;
+                                }
+                            }
+                        }
+                    } else if (absDx < absDy) {
+                        int mod = (((int) y) % UNIT_SIZE);
+                        if (mod == 0) {
+                            if (!(mMoveBottom || mMoveTop)) {
+                                if (dy > 0) {
+                                    this.resetMove();
+                                    mMoveBottom = true;
+                                } else if (dy < 0) {
+                                    this.resetMove();
+                                    mMoveTop = true;
+                                }
+                            }
+                        }
+                    }
+//                }
+                L.d("after x: " + x + ", y: " + y);
                 mSnakePoint.set(x, y);
-                break;
-            case MotionEvent.ACTION_UP:
-//                mMoveBottom = false;
-//                mMoveLeft = false;
-//                mMoveRight = false;
-//                mMoveTop = false;
+//                mTouchPoint.set(x, y);
                 break;
         }
         return true;
@@ -110,7 +131,7 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         winMgr.getDefaultDisplay().getSize(mOutSize);
         mDeviceWidth = mOutSize.x;
         mDeviceHeight = mOutSize.y;
-        mRandomNum = Math.random();
+        mRand = new Random();
 
         mSnakePaint = new Paint();
         mSnakePaint.setColor(Color.GREEN);
@@ -118,15 +139,12 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         mApplePaint.setColor(Color.RED);
 
         // init snake position
-        float snakeX = 96;
-        float snakeY = 96;
+        float snakeX = 100;
+        float snakeY = 100;
         mSnakePoint = new PointF(snakeX, snakeY);
 
         // init apple position
-        // @TODO - check if apple collides with snake
-        float appleX = (float) ((mDeviceWidth - UNIT_SIZE) * mRandomNum);
-        float appleY = (float) ((mDeviceHeight - UNIT_SIZE) * mRandomNum);
-        mApplePoint = new PointF(appleX, appleY);
+        this.placeApple();
 
         mAppleLeft = mApplePoint.x;
         mAppleTop = mApplePoint.y;
@@ -136,6 +154,13 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     }
 
     protected void updateView() {
+
+        mSnakeRight = (mSnakeLeft + UNIT_SIZE);
+        mSnakeBottom = (mSnakeTop + UNIT_SIZE);
+
+        // check collision with apple
+
+
         if (mMoveBottom) {
             mSnakeTop += 5;
         } else if (mMoveLeft) {
@@ -145,15 +170,6 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         } else if (mMoveTop) {
             mSnakeTop -= 5;
         }
-//        mSnakeLeft = mSnakePoint.x;
-//        mSnakeTop = mSnakePoint.y;
-        mSnakeRight = (mSnakeLeft + UNIT_SIZE);
-        mSnakeBottom = (mSnakeTop + UNIT_SIZE);
-
-
-
-
-
     }
 
     protected void drawView() {
@@ -174,6 +190,8 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
 
         // draw snake
         canvas.drawRect(mSnakeLeft, mSnakeTop, mSnakeRight, mSnakeBottom, mSnakePaint);
+
+
 
 
         mHolder.unlockCanvasAndPost(canvas);
@@ -211,5 +229,57 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
                 mTask = null;
             }
         }
+    }
+
+    protected void resetMove() {
+        mMoveBottom = false;
+        mMoveLeft = false;
+        mMoveRight = false;
+        mMoveTop = false;
+    }
+
+    protected int getRandomAppleX() {
+        List<Integer> list = new ArrayList<Integer>();
+        int size = (mDeviceWidth - UNIT_SIZE);
+        int n = 0;
+        int i = 1;
+        while (n < size) {
+            n = i * UNIT_SIZE;
+            list.add(n);
+            i++;
+        }
+        int index = mRand.nextInt(list.size());
+        return list.get(index);
+    }
+
+    protected int getRandomAppleY() {
+        List<Integer> list = new ArrayList<>();
+        int size = (mDeviceHeight - UNIT_SIZE);
+        int n = 0;
+        int i = 1;
+        while (n < size) {
+            n = i * UNIT_SIZE;
+            list.add(n);
+            i++;
+        }
+        int index = mRand.nextInt(list.size());
+        return list.get(index);
+    }
+
+    protected void placeApple() {
+//        int appleX = (int) ((mDeviceWidth - UNIT_SIZE) * mRandomNum);
+//        int appleY = (int) ((mDeviceHeight - UNIT_SIZE) * mRandomNum);
+
+        int appleX = this.getRandomAppleX();
+        int appleY = this.getRandomAppleY();
+
+//        int debug = 1;
+
+        // @TODO - check if apple collides with snake
+        /*while () {
+
+        }*/
+
+        mApplePoint = new PointF(appleX, appleY);
     }
 }
