@@ -23,7 +23,8 @@ import java.util.Random;
  * Created by foo on 3/13/18.
  */
 
-public class GameView extends SurfaceView implements Runnable, View.OnTouchListener {
+public class GameView extends SurfaceView implements Runnable, View.OnTouchListener,
+        SurfaceHolder.Callback {
 
     protected static final String TAG = GameView.class.getSimpleName();
     protected static final int UNIT_SIZE = 50;
@@ -36,6 +37,7 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     protected Random mRand;
     protected Paint mApplePaint;
     protected Paint mSnakePaint;
+    protected Paint mGridPaint;
     protected Point mOutSize = new Point();
     protected int mDeviceWidth;
     protected int mDeviceHeight;
@@ -91,27 +93,64 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
 //                if ((absDx > 300) || (absDy > 300)) {
                     if (absDx > absDy ) {
                         int mod = (((int) x) % UNIT_SIZE);
-                        if (mod == 0) {
-                            if (!(mMoveLeft || mMoveRight)) {
-                                if (dx > 0) {
-                                    this.resetMove();
-                                    mMoveRight = true;
-                                } else if (dx < 0) {
-                                    this.resetMove();
-                                    mMoveLeft = true;
+                        boolean canMove = (mod == 0);
+                        if (!(mMoveLeft || mMoveRight)) {
+                            if (dx > 0) {
+                                if (canMove) {
+                                    if (mNextMove == Move.RIGHT) {
+                                        this.resetMove();
+                                        mMoveRight = true;
+                                        mNextMove = null;
+                                    } else {
+                                        this.resetMove();
+                                        mMoveRight = true;
+                                    }
+                                } else {
+                                    mNextMove = Move.RIGHT;
+                                }
+                            } else if (dx < 0) {
+                                if (canMove) {
+                                    if (mNextMove == Move.LEFT) {
+                                        this.resetMove();
+                                        mMoveLeft = true;
+                                        mNextMove = null;
+                                    } else {
+                                        this.resetMove();
+                                        mMoveLeft = true;
+                                    }
+                                } else {
+                                    mNextMove = Move.LEFT;
                                 }
                             }
                         }
                     } else if (absDx < absDy) {
                         int mod = (((int) y) % UNIT_SIZE);
-                        if (mod == 0) {
-                            if (!(mMoveBottom || mMoveTop)) {
-                                if (dy > 0) {
+                        boolean canMove = (mod == 0);
+                        if (!(mMoveBottom || mMoveTop)) {
+                            if (dy > 0) {
+                                if (canMove) {
+                                    if (mNextMove == Move.BOTTOM) {
+                                        this.resetMove();
+                                        mMoveBottom = true;
+                                        mNextMove = null;
+                                    }
                                     this.resetMove();
                                     mMoveBottom = true;
-                                } else if (dy < 0) {
-                                    this.resetMove();
-                                    mMoveTop = true;
+                                } else {
+                                    mNextMove = Move.BOTTOM;
+                                }
+                            } else if (dy < 0) {
+                                if (canMove) {
+                                    if (mNextMove == Move.TOP) {
+                                        this.resetMove();
+                                        mMoveTop = true;
+                                        mNextMove = null;
+                                    } else {
+                                        this.resetMove();
+                                        mMoveTop = true;
+                                    }
+                                } else {
+                                    mNextMove = Move.TOP;
                                 }
                             }
                         }
@@ -123,6 +162,24 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
                 break;
         }
         return true;
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        Canvas canvas = holder.lockCanvas();
+        this.drawGrid(canvas);
+        holder.unlockCanvasAndPost(canvas);
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width,
+                               int height) {
+
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+
     }
 
     protected void init() {
@@ -137,6 +194,8 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         mSnakePaint.setColor(Color.GREEN);
         mApplePaint = new Paint();
         mApplePaint.setColor(Color.RED);
+        mGridPaint = new Paint();
+        mGridPaint.setColor(Color.GRAY);
 
         // init snake position
         float snakeX = 100;
@@ -151,6 +210,7 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         mAppleRight = (mAppleLeft + UNIT_SIZE);
         mAppleBottom = (mAppleTop + UNIT_SIZE);
 
+        mHolder.addCallback(this);
     }
 
     protected void updateView() {
@@ -184,6 +244,21 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
             return;
         }
         canvas.drawColor(Color.BLACK);
+
+        // draw grid
+        for (int i = 0; i < mDeviceHeight; i++) {
+            float startX = 0;
+            float startY = UNIT_SIZE * i;
+            float stopX = mDeviceWidth;
+            canvas.drawLine(startX, startY, stopX, startY, mGridPaint);
+        }
+
+        for (int i = 0; i < mDeviceWidth; i++) {
+            float startX = UNIT_SIZE * i;
+            float startY = 0;
+            float stopY = mDeviceHeight;
+            canvas.drawLine(startX, startY, startX, stopY, mGridPaint);
+        }
 
         // draw apple
         canvas.drawRect(mAppleLeft, mAppleTop, mAppleRight, mAppleBottom, mApplePaint);
@@ -270,16 +345,20 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
 //        int appleX = (int) ((mDeviceWidth - UNIT_SIZE) * mRandomNum);
 //        int appleY = (int) ((mDeviceHeight - UNIT_SIZE) * mRandomNum);
 
-        int appleX = this.getRandomAppleX();
-        int appleY = this.getRandomAppleY();
+        int x = this.getRandomAppleX();
+        int y = this.getRandomAppleY();
 
-//        int debug = 1;
+        L.d("x: " + x + ", y: " + y);
 
         // @TODO - check if apple collides with snake
         /*while () {
 
         }*/
 
-        mApplePoint = new PointF(appleX, appleY);
+        mApplePoint = new PointF(x, y);
+    }
+
+    protected void drawGrid(Canvas canvas) {
+
     }
 }
