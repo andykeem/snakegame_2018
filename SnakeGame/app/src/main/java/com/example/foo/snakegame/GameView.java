@@ -27,7 +27,6 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         SurfaceHolder.Callback {
 
     protected static final String TAG = GameView.class.getSimpleName();
-    protected static final int UNIT_SIZE = 50;
     protected static final int SNAKE_INCREASE_UNIT = 3;
 
     protected Context mContext;
@@ -35,6 +34,7 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     protected Thread mTask;
     protected boolean mRunning;
     protected Random mRand;
+    protected int mUnitSize;
     protected Paint mApplePaint;
     protected Paint mSnakePaint;
     protected Paint mGridPaint;
@@ -49,14 +49,16 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     protected float mAppleTop;
     protected float mAppleRight;
     protected float mAppleBottom;
-    protected PointF mSnakePoint;
-    protected PointF mApplePoint;
+//    protected PointF mSnakePoint;
+//    protected PointF mApplePoint;
     protected PointF mTouchPoint = new PointF();
     protected boolean mMoveBottom;
     protected boolean mMoveLeft;
     protected boolean mMoveRight;
     protected boolean mMoveTop;
-    protected enum Move { BOTTOM, LEFT, TOP, RIGHT }
+
+    protected enum Move {BOTTOM, LEFT, TOP, RIGHT}
+
     protected Move mNextMove;
 
     public GameView(Context context) {
@@ -91,73 +93,91 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
                 float absDx = Math.abs(dx);
                 float absDy = Math.abs(dy);
 //                if ((absDx > 300) || (absDy > 300)) {
-                    if (absDx > absDy ) {
-                        int mod = (((int) x) % UNIT_SIZE);
-                        boolean canMove = (mod == 0);
-                        if (!(mMoveLeft || mMoveRight)) {
-                            if (dx > 0) {
-                                if (canMove) {
-                                    if (mNextMove == Move.RIGHT) {
-                                        this.resetMove();
-                                        mMoveRight = true;
-                                        mNextMove = null;
-                                    } else {
-                                        this.resetMove();
-                                        mMoveRight = true;
-                                    }
-                                } else {
-                                    mNextMove = Move.RIGHT;
-                                }
-                            } else if (dx < 0) {
-                                if (canMove) {
-                                    if (mNextMove == Move.LEFT) {
-                                        this.resetMove();
-                                        mMoveLeft = true;
-                                        mNextMove = null;
-                                    } else {
-                                        this.resetMove();
-                                        mMoveLeft = true;
-                                    }
-                                } else {
-                                    mNextMove = Move.LEFT;
-                                }
+
+                int modX = (((int) mSnakeLeft) % mUnitSize);
+                int modY = (((int) mSnakeTop) % mUnitSize);
+                boolean canMoveX = (modX == 0);
+                boolean canMoveY = (modY == 0);
+
+                if (absDx > absDy) {
+//                    if (!(mMoveLeft || mMoveRight)) {
+                        if (dx > 0) { // move right
+                            if (canMoveX && canMoveY) {
+                                this.resetMove();
+                                mMoveRight = true;
+                                mNextMove = null;
+                            } else {
+                                mNextMove = Move.RIGHT;
+                            }
+                        } else if (dx < 0) { // move left
+                            if (canMoveX && canMoveY) {
+                                this.resetMove();
+                                mMoveLeft = true;
+                                mNextMove = null;
+                            } else {
+                                mNextMove = Move.LEFT;
                             }
                         }
-                    } else if (absDx < absDy) {
-                        int mod = (((int) y) % UNIT_SIZE);
-                        boolean canMove = (mod == 0);
-                        if (!(mMoveBottom || mMoveTop)) {
-                            if (dy > 0) {
-                                if (canMove) {
-                                    if (mNextMove == Move.BOTTOM) {
-                                        this.resetMove();
-                                        mMoveBottom = true;
-                                        mNextMove = null;
-                                    }
-                                    this.resetMove();
-                                    mMoveBottom = true;
-                                } else {
-                                    mNextMove = Move.BOTTOM;
-                                }
-                            } else if (dy < 0) {
-                                if (canMove) {
-                                    if (mNextMove == Move.TOP) {
-                                        this.resetMove();
-                                        mMoveTop = true;
-                                        mNextMove = null;
-                                    } else {
-                                        this.resetMove();
-                                        mMoveTop = true;
-                                    }
-                                } else {
-                                    mNextMove = Move.TOP;
-                                }
+//                    }
+                } else if (absDx < absDy) {
+//                    if (!(mMoveBottom || mMoveTop)) {
+                        if (dy > 0) { // move bottom
+                            if (canMoveY && canMoveX) {
+                                this.resetMove();
+                                mMoveBottom = true;
+                                mNextMove = null;
+                            } else {
+                                mNextMove = Move.BOTTOM;
+                            }
+                        } else if (dy < 0) { // move top
+                            if (canMoveY && canMoveX) {
+                                this.resetMove();
+                                mMoveTop = true;
+                                mNextMove = null;
+                            } else {
+                                mNextMove = Move.TOP;
                             }
                         }
+//                    }
+                }
+
+                if ((mNextMove != null) && (canMoveX || canMoveY)) {
+                    /*this.resetMove();
+                    if (canMoveX) {
+                        if (mNextMove == Move.BOTTOM) {
+                            mMoveBottom = true;
+                        } else if (mNextMove == Move.TOP) {
+                            mMoveTop = true;
+                        }
+                    } else if (canMoveY) {
+                        if (mNextMove == Move.LEFT) {
+                            mMoveLeft = true;
+                        } else if (mNextMove == Move.RIGHT) {
+                            mMoveRight = true;
+                        }
+                    }*/
+
+                    switch (mNextMove) {
+                        case BOTTOM:
+                            mMoveBottom = true;
+                            break;
+                        case LEFT:
+                            mMoveLeft = true;
+                            break;
+                        case RIGHT:
+                            mMoveRight = true;
+                            break;
+                        case TOP:
+                            mMoveTop = true;
+                            break;
                     }
+                }
+
 //                }
                 L.d("after x: " + x + ", y: " + y);
-                mSnakePoint.set(x, y);
+//                mSnakePoint.set(x, y);
+//                mSnakeLeft = x;
+//                mSnakeTop = y;
 //                mTouchPoint.set(x, y);
                 break;
         }
@@ -190,6 +210,8 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         mDeviceHeight = mOutSize.y;
         mRand = new Random();
 
+        mUnitSize = (mDeviceWidth / 16); // 4); // 16);
+
         mSnakePaint = new Paint();
         mSnakePaint.setColor(Color.GREEN);
         mApplePaint = new Paint();
@@ -200,26 +222,20 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         // init snake position
         float snakeX = 100;
         float snakeY = 100;
-        mSnakePoint = new PointF(snakeX, snakeY);
+//        mSnakePoint = new PointF(snakeX, snakeY);
 
         // init apple position
         this.placeApple();
 
-        mAppleLeft = mApplePoint.x;
-        mAppleTop = mApplePoint.y;
-        mAppleRight = (mAppleLeft + UNIT_SIZE);
-        mAppleBottom = (mAppleTop + UNIT_SIZE);
+//        mAppleLeft = mApplePoint.x;
+//        mAppleTop = mApplePoint.y;
+        mAppleRight = (mAppleLeft + mUnitSize);
+        mAppleBottom = (mAppleTop + mUnitSize);
 
         mHolder.addCallback(this);
     }
 
     protected void updateView() {
-
-        mSnakeRight = (mSnakeLeft + UNIT_SIZE);
-        mSnakeBottom = (mSnakeTop + UNIT_SIZE);
-
-        // check collision with apple
-
 
         if (mMoveBottom) {
             mSnakeTop += 5;
@@ -230,6 +246,11 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         } else if (mMoveTop) {
             mSnakeTop -= 5;
         }
+
+        mSnakeRight = (mSnakeLeft + mUnitSize);
+        mSnakeBottom = (mSnakeTop + mUnitSize);
+
+        // check collision with apple
     }
 
     protected void drawView() {
@@ -248,13 +269,13 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
         // draw grid
         for (int i = 0; i < mDeviceHeight; i++) {
             float startX = 0;
-            float startY = UNIT_SIZE * i;
+            float startY = mUnitSize * i;
             float stopX = mDeviceWidth;
             canvas.drawLine(startX, startY, stopX, startY, mGridPaint);
         }
 
         for (int i = 0; i < mDeviceWidth; i++) {
-            float startX = UNIT_SIZE * i;
+            float startX = mUnitSize * i;
             float startY = 0;
             float stopY = mDeviceHeight;
             canvas.drawLine(startX, startY, startX, stopY, mGridPaint);
@@ -265,8 +286,6 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
 
         // draw snake
         canvas.drawRect(mSnakeLeft, mSnakeTop, mSnakeRight, mSnakeBottom, mSnakePaint);
-
-
 
 
         mHolder.unlockCanvasAndPost(canvas);
@@ -314,12 +333,12 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     }
 
     protected int getRandomAppleX() {
-        List<Integer> list = new ArrayList<Integer>();
-        int size = (mDeviceWidth - UNIT_SIZE);
+        List<Integer> list = new ArrayList<>();
+        int size = (mDeviceWidth - mUnitSize);
         int n = 0;
         int i = 1;
         while (n < size) {
-            n = i * UNIT_SIZE;
+            n = i * mUnitSize;
             list.add(n);
             i++;
         }
@@ -329,11 +348,11 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
 
     protected int getRandomAppleY() {
         List<Integer> list = new ArrayList<>();
-        int size = (mDeviceHeight - UNIT_SIZE);
+        int size = (mDeviceHeight - mUnitSize);
         int n = 0;
         int i = 1;
         while (n < size) {
-            n = i * UNIT_SIZE;
+            n = i * mUnitSize;
             list.add(n);
             i++;
         }
@@ -342,8 +361,8 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
     }
 
     protected void placeApple() {
-//        int appleX = (int) ((mDeviceWidth - UNIT_SIZE) * mRandomNum);
-//        int appleY = (int) ((mDeviceHeight - UNIT_SIZE) * mRandomNum);
+//        int appleX = (int) ((mDeviceWidth - mUnitSize) * mRandomNum);
+//        int appleY = (int) ((mDeviceHeight - mUnitSize) * mRandomNum);
 
         int x = this.getRandomAppleX();
         int y = this.getRandomAppleY();
@@ -355,7 +374,9 @@ public class GameView extends SurfaceView implements Runnable, View.OnTouchListe
 
         }*/
 
-        mApplePoint = new PointF(x, y);
+//        mApplePoint = new PointF(x, y);
+        mAppleLeft = x;
+        mAppleTop = y;
     }
 
     protected void drawGrid(Canvas canvas) {
